@@ -16,3 +16,5 @@ class Config(metaclass=Singleton):
         self.github_access_token = os.getenv('github_api_key')
         self.app_host = "0.0.0.0"
         self.app_port = 7111
+        # Tavily API配置
+        self.tavily_api_key = os.getenv('tavily_api_key')

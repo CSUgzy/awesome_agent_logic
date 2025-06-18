@@ -14,3 +14,9 @@ class AdvancedSearchRequest(BaseModel):
     max_stars: Optional[int] = None
     updated_after: Optional[str] = None # Expected format YYYY-MM-DD
     exclude_forks: Optional[bool] = False
+
+class AwesomeSearchRequest(BaseModel):
+    """
+    用于Awesome Agent搜索的请求模型。
+    """
+    domain: str

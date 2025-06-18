@@ -1,0 +1,8 @@
+/web/node_modules
+/__pycache__
+/llm/__pycache__
+/llm/awesome_agent_logic/__pycache__
+/llm/awesome_agent_logic/llm_agent_logic/__pycache__
+/llm/awesome_agent_logic/llm_agent_logic/llm_agent_logic/__pycache__
+/api/__pycache__
+/utils/__pycache__
