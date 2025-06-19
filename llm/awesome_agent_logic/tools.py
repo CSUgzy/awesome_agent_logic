@@ -14,6 +14,7 @@ import time
 from datetime import datetime
 from bs4 import BeautifulSoup
 from typing import List, Dict, Any, Optional, Union, Tuple
+from llm.filter_keywords import FilterKeywords # 新增导入
 
 # 设置日志
 logger = logging.getLogger(__name__)
@@ -36,7 +37,7 @@ class GithubTools:
         """
         logger.info(f"搜索GitHub仓库，关键词: {keywords}")
         
-        all_repos = []
+        all_repos_raw = [] # 用于存放原始API结果
         headers = {
             'Authorization': f'token {access_token}',
             'Accept': 'application/vnd.github+json',
@@ -53,7 +54,7 @@ class GithubTools:
                 response.raise_for_status()
                 
                 repos = response.json().get('items', [])
-                all_repos.extend(repos)
+                all_repos_raw.extend(repos) # 将原始结果添加到all_repos_raw
                 
                 logger.info(f"关键词 '{keyword}' 返回 {len(repos)} 个结果")
                 
@@ -63,7 +64,37 @@ class GithubTools:
             except Exception as e:
                 logger.error(f"搜索关键词 '{keyword}' 失败: {e}")
         
-        return all_repos
+        # 添加过滤逻辑
+        filtered_repos = []
+        filter_keywords_instance = FilterKeywords()
+        for repo in all_repos_raw:
+            repo_name_str = repo.get('full_name', '')
+            repo_desc_str = repo.get('description') or ''
+
+            repo_name_lower = repo_name_str.lower()
+            repo_desc_lower = repo_desc_str.lower()
+
+            is_sensitive = False
+            for p_kw in filter_keywords_instance.combined_filter_keywords:
+                is_english_kw = all(ord(char) < 128 for char in p_kw) and any(char.isalpha() for char in p_kw)
+
+                if is_english_kw:
+                    if p_kw in repo_name_lower or p_kw in repo_desc_lower:
+                        is_sensitive = True
+                        logger.info(f"过滤敏感内容 (英文匹配): {repo.get('full_name')} 因关键词 '{p_kw}'")
+                        break
+                else:
+                    if p_kw in repo_name_str or p_kw in repo_desc_str or \
+                       p_kw in repo_name_lower or p_kw in repo_desc_lower:
+                        is_sensitive = True
+                        logger.info(f"过滤敏感内容 (中文/混合匹配): {repo.get('full_name')} 因关键词 '{p_kw}'")
+                        break
+            
+            if not is_sensitive:
+                filtered_repos.append(repo)
+        
+        logger.info(f"原始搜索到 {len(all_repos_raw)} 个仓库，过滤后剩余 {len(filtered_repos)} 个仓库")
+        return filtered_repos
     
     @staticmethod
     def get_repo_details(repo_url: str, access_token: str) -> Dict[str, Any]:
@@ -501,4 +532,4 @@ class LLMTools:
             report += "## 总结\n\n"
             report += f"以上就是我们为您精选的 {domain} 领域优质GitHub资源。这些项目经过精心筛选，涵盖了从入门到进阶的多种资源。希望这份推荐能够帮助您更深入地学习和探索此领域。\n"
             
-            return report 
+            return report
